@@ -1,6 +1,25 @@
 import numpy as np
 from model import MLP_Hidden2
-from utils import split_fold, split_batch
+from utils import split_fold, split_batch, f1_score
+from sklearn.metrics import accuracy_score
+
+def infer(model, x_inputs, y_labels, hp):
+    # Initialisation
+    y_score = []
+    y_true = []
+
+    model.eval()
+    batches = split_batch(x_inputs, hp["batch_size"])
+
+    for batch in batches:
+        x_batch, y_batch = x_inputs[batch], y_labels[batch]
+        y_pred = model.forward(x_batch)
+        y_score.extend(np.argmax(y_pred, axis=1))
+        y_true.extend(np.argmax(y_batch, axis=1))
+
+    print(f"\tAccuracy {accuracy_score(y_pred=y_score, y_true=y_true)}")
+
+    return f1_score(y_true, y_score)
 
 
 def fit(model: MLP_Hidden2, x_train, y_train, hp):
@@ -25,13 +44,10 @@ def fit(model: MLP_Hidden2, x_train, y_train, hp):
             loss += model.loss(y_batch, y_pred)
             model.backward()
 
-        # Compute results
-        # train_loss = compute_loss(model, train_dataset)
-        # val_loss = compute_loss(model, val_loader)
-        # f1_train, _, _ = infer(model, train_dataset, infer_threshold)
-        # f1_val, _, _, = infer(model, val_loader, infer_threshold)
+        f1_train = infer(model, x_train, y_train, hp)
 
-        print(f"\tEpoch {epoch + 1} - Loss {loss / hp['batch_size']}")
+        # Compute results
+        print(f"\tEpoch {epoch + 1} - Loss {loss / hp['batch_size']} - F1-score (train) {f1_train}")
     print("\n")
 
 
@@ -62,6 +78,10 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
 
         # TODO: fit, infer
         fit(model=model, x_train=inputs_train, y_train=labels_train, hp=hp)
+
+        f1 = infer(model=model, x_inputs=inputs_val, y_labels=labels_val, hp=hp)
+
+        print(f"F1-score {f1}")
 
         i += 1
     return 0

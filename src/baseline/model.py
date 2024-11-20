@@ -34,7 +34,7 @@ class MLP_Hidden2:
 
         self.y_true = None
 
-    def evaluation(self):
+    def eval(self):
         self.is_train = False
 
     def train(self):
