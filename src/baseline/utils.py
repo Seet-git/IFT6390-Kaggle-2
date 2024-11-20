@@ -1,42 +1,8 @@
 import numpy as np
 
-def f1_score(y_true: list, y_pred: list):
-    """
-    Calculate macro F1 score
-    :param y_true:
-    :param y_pred:
-    :return:
-    """
-    # Vérifier les dimensions
-    assert len(y_true) == len(y_pred), f"Shape: {len(y_true)} != {len(y_pred)}"
 
-    # Récupérer les labels uniques
-    labels = np.unique(y_true)
-
-    # Initialiser les scores F1 pour chaque classe
-    f1_scores = []
-
-    for label in labels:
-        # Vrais positifs
-        vrai_pos = np.sum((y_true == label) & (y_pred == label))
-
-        # Faux positifs
-        faux_pos = np.sum((y_true != label) & (y_pred == label))
-
-        # Faux négatifs
-        faux_neg = np.sum((y_true == label) & (y_pred != label))
-
-        # Précision (precision) et rappel (recall)
-        precision = vrai_pos / (vrai_pos + faux_pos) if (vrai_pos + faux_pos) > 0 else 0
-        recall = vrai_pos / (vrai_pos + faux_neg) if (vrai_pos + faux_neg) > 0 else 0
-
-        # F1 score pour la classe
-        f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-        f1_scores.append(f1)
-
-    # F1 score macro : moyenne des F1 scores des classes
-    f1_macro = np.mean(f1_scores)
-    return f1_macro
+def accuracy(y_pred, y_true):
+    return np.mean(y_true == y_pred)
 
 
 def split_fold(inputs_images: np.ndarray, n_split: int) -> list:

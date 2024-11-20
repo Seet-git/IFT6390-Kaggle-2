@@ -51,12 +51,14 @@ class MLP_Hidden2:
         # 1st layer
         self.hidden1_output = self.linear(x=x, weight=self.weight1, biais=self.biais1)
         self.hidden1_output = self.relu(self.hidden1_output)
-        self.hidden1_output = self.dropout(self.hidden1_output)
+        if self.is_train:
+            self.hidden1_output = self.dropout(self.hidden1_output)
 
         # 2nd layer
         self.hidden2_output = self.linear(x=self.hidden1_output, weight=self.weight2, biais=self.biais2)
         self.hidden2_output = self.relu(self.hidden2_output)
-        self.hidden2_output = self.dropout(self.hidden2_output)
+        if self.is_train:
+            self.hidden2_output = self.dropout(self.hidden2_output)
 
         # Output layer
         x = self.linear(x=self.hidden2_output, weight=self.weight3, biais=self.biais3)
@@ -120,4 +122,96 @@ class MLP_Hidden2:
 
     def softmax(self, x) -> np.ndarray:
         exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))  # Exp + prevent overflow
+        return exp_x / np.sum(exp_x, axis=1, keepdims=True)
+
+
+class MLP_Hidden1:
+    def __init__(self, input_size: int, hidden_layer: int, dropout_rate: float, batch_size: int, eta: float):
+        self.input_size = input_size
+        self.is_train = True
+
+        # Hyper-paramètres
+        self.batch_size = batch_size
+        self.eta = eta
+        self.dropout_rate = dropout_rate
+
+        # Couche cachée
+        self.hidden_layer = hidden_layer
+
+        # Initialisation des poids avec la formule de Xavier
+        self.weight1 = np.random.randn(self.input_size, self.hidden_layer) * np.sqrt(2 / self.input_size)
+        self.weight2 = np.random.randn(self.hidden_layer, 4) * np.sqrt(2 / self.hidden_layer)  # 4 classes de sortie
+
+        # Biais
+        self.biais1 = np.random.rand(self.hidden_layer)
+        self.biais2 = np.random.rand(4)
+
+        # Sorties intermédiaires
+        self.x = None
+        self.hidden_output = None
+        self.y_pred = None
+        self.y_true = None
+
+    def eval(self):
+        self.is_train = False
+
+    def train(self):
+        self.is_train = True
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        """
+        Forward pass
+        :param x:
+        :return:
+        """
+        self.x = x
+        x = x.reshape(x.shape[0], -1)  # Aplatir l'entrée si nécessaire
+
+        # 1st layer
+        self.hidden_output = self.linear(x, self.weight1, self.biais1)
+        self.hidden_output = self.relu(self.hidden_output)
+        if self.is_train:
+            self.hidden_output = self.dropout(self.hidden_output)
+
+        # Output layer
+        x = self.linear(self.hidden_output, self.weight2, self.biais2)
+        return self.softmax(x)
+
+    def loss(self, y_true, y_pred) -> float:
+        self.y_true = y_true
+        self.y_pred = y_pred
+        epsilon = 1e-10  # Éviter log(0)
+        return -np.sum(y_true * np.log(y_pred + epsilon)) / self.batch_size
+
+    def backward(self):
+        # Gradient de la couche de sortie
+        gradient_loss = self.y_pred - self.y_true
+        d_weight2 = np.dot(self.hidden_output.T, gradient_loss) / self.batch_size
+        d_biais2 = np.sum(gradient_loss, axis=0) / self.batch_size
+
+        # Gradient de la couche cachée
+        d_hidden = np.dot(gradient_loss, self.weight2.T)
+        d_hidden = d_hidden * (self.hidden_output > 0)  # Dérivée de ReLU
+        d_weight1 = np.dot(self.x.T, d_hidden) / self.batch_size
+        d_biais1 = np.sum(d_hidden, axis=0) / self.batch_size
+        d_weight1 = d_weight1.reshape(self.input_size, -1)  # Aplatir l'image
+
+        # Mise à jour des poids et biais
+        self.weight1 -= self.eta * d_weight1
+        self.biais1 -= self.eta * d_biais1
+        self.weight2 -= self.eta * d_weight2
+        self.biais2 -= self.eta * d_biais2
+
+    def linear(self, x, weight, biais) -> np.ndarray:
+        return np.dot(x, weight) + biais
+
+    def relu(self, x) -> np.ndarray:
+        return np.maximum(0, x)
+
+    def dropout(self, x) -> np.ndarray:
+        mask = np.random.binomial(1, 1 - self.dropout_rate, size=x.shape) / (1 - self.dropout_rate)
+        return x * mask
+
+    def softmax(self, x) -> np.ndarray:
+        exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))  # Prévenir les dépassements
         return exp_x / np.sum(exp_x, axis=1, keepdims=True)

@@ -15,13 +15,13 @@ def main():
     images_test = np.array(data_test['images'])
 
     # Grid search and return best hyperparameters in a python file
-    # grid_search(inputs_images=images_train, labels_images=labels_train)
+    grid_search(inputs_images=images_train, labels_images=labels_train)
 
     # Load best hyper-parameters
     hp = {
         "input_size": 784,
-        "hidden_size1": 64,
-        "hidden_size2": 32,
+        "hidden_size1": 512,
+        "hidden_size2": 264,
         "dropout_rate": 0.2,
         "batch_size": 16,
         "eta": 0.001,

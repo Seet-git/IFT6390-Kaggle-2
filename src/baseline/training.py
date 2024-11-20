@@ -1,6 +1,7 @@
 import numpy as np
-from model import MLP_Hidden2
-from utils import split_fold, split_batch, f1_score, create_one_hot
+
+from model import MLP_Hidden2, MLP_Hidden1
+from utils import split_fold, split_batch, create_one_hot, accuracy
 
 
 def infer(model, x_inputs, y_labels, hp):
@@ -17,10 +18,12 @@ def infer(model, x_inputs, y_labels, hp):
         y_score.extend(np.argmax(y_pred, axis=1))
         y_true.extend(np.argmax(y_batch, axis=1))
 
-    return f1_score(y_true, y_score)
+    y_score = np.array(y_score)
+    y_true = np.array(y_true)
+    return accuracy(y_score, y_true)
 
 
-def fit(model: MLP_Hidden2, x_train, y_train, hp):
+def fit(model: MLP_Hidden1, x_train, y_train, hp):
     """
     Fit model
     :param model:
@@ -42,10 +45,10 @@ def fit(model: MLP_Hidden2, x_train, y_train, hp):
             loss += model.loss(y_batch, y_pred)
             model.backward()
 
-        f1_train = infer(model, x_train, y_train, hp)
+        acc_train = infer(model, x_train, y_train, hp)
 
         # Compute results
-        print(f"\tEpoch {epoch + 1} - Loss {loss / hp['batch_size']} - F1-score (train) {f1_train}")
+        print(f"\tEpoch {epoch + 1} - Loss {loss / hp['batch_size']} - Accuracy (train) {acc_train}")
     print("")
 
 
@@ -57,7 +60,7 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
     :param n_split:
     :return:
     """
-    f1_scores = []
+    acc_scores = []
     model = None
     kf_index = split_fold(inputs_images, n_split)
 
@@ -71,19 +74,22 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
         labels_train, labels_val = np.delete(one_hot, fold, axis=0), one_hot[fold]
 
         # Set model
-        model = MLP_Hidden2(input_size=hp['input_size'], hidden_layer1=hp['hidden_size1'],
-                            hidden_layer2=hp['hidden_size2'],
+        # model = MLP_Hidden2(input_size=hp['input_size'], hidden_layer1=hp['hidden_size1'],
+        #                     hidden_layer2=hp['hidden_size2'],
+        #                     dropout_rate=hp['dropout_rate'], batch_size=hp['batch_size'], eta=hp['eta'])
+
+        model = MLP_Hidden1(input_size=hp['input_size'], hidden_layer=hp['hidden_size1'],
                             dropout_rate=hp['dropout_rate'], batch_size=hp['batch_size'], eta=hp['eta'])
 
         fit(model=model, x_train=inputs_train, y_train=labels_train, hp=hp)
 
-        f1 = infer(model=model, x_inputs=inputs_val, y_labels=labels_val, hp=hp)
-        f1_scores.append(f1)
+        acc = infer(model=model, x_inputs=inputs_val, y_labels=labels_val, hp=hp)
+        acc_scores.append(acc)
 
-        print(f"\tF1-score (val) {f1}\n")
+        print(f"\tAccuracy (val) {acc}\n")
 
         i += 1
-    return np.mean(f1_scores), model
+    return np.mean(acc_scores), model
 
 
 def train(inputs_images: np.ndarray, labels_images: np.ndarray, hp: dict):
