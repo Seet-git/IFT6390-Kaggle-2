@@ -16,10 +16,10 @@ class MLP_Hidden2:
         self.hidden_layer1 = hidden_layer1
         self.hidden_layer2 = hidden_layer2
 
-        # Weight
-        self.weight1 = np.random.rand(self.input_size, self.hidden_layer1)
-        self.weight2 = np.random.rand(self.hidden_layer1, self.hidden_layer2)
-        self.weight3 = np.random.rand(self.hidden_layer2, 4)
+        # Weight Xavier formula
+        self.weight1 = np.random.randn(self.input_size, self.hidden_layer1) * np.sqrt(2 / self.input_size)
+        self.weight2 = np.random.randn(self.hidden_layer1, self.hidden_layer2) * np.sqrt(2 / self.hidden_layer1)
+        self.weight3 = np.random.randn(self.hidden_layer2, 4) * np.sqrt(2 / self.hidden_layer2)
 
         # Biais
         self.biais1 = np.random.rand(self.hidden_layer1)
@@ -47,7 +47,7 @@ class MLP_Hidden2:
         :return:
         """
         self.x = x
-        x = x.reshape(x.shape[0], -1) # Aplatir l'image
+        x = x.reshape(x.shape[0], -1)  # Aplatir l'image
         # 1st layer
         self.hidden1_output = self.linear(x=x, weight=self.weight1, biais=self.biais1)
         self.hidden1_output = self.relu(self.hidden1_output)
@@ -97,7 +97,7 @@ class MLP_Hidden2:
         # Calculate gradient weight and biais
         d_weight1 = np.dot(self.x.T, d_hidden1) / self.batch_size
         d_biais1 = np.sum(d_hidden1, axis=0) / self.batch_size
-        d_weight1 = d_weight1.reshape(self.input_size, -1) # Aplatir l'image
+        d_weight1 = d_weight1.reshape(self.input_size, -1)  # Aplatir l'image
 
         # Update all weight and biais
         self.weight1 -= self.eta * d_weight1

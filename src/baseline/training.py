@@ -1,7 +1,7 @@
 import numpy as np
 from model import MLP_Hidden2
 from utils import split_fold, split_batch, f1_score
-from sklearn.metrics import accuracy_score
+
 
 def infer(model, x_inputs, y_labels, hp):
     # Initialisation
@@ -16,8 +16,6 @@ def infer(model, x_inputs, y_labels, hp):
         y_pred = model.forward(x_batch)
         y_score.extend(np.argmax(y_pred, axis=1))
         y_true.extend(np.argmax(y_batch, axis=1))
-
-    print(f"\tAccuracy {accuracy_score(y_pred=y_score, y_true=y_true)}")
 
     return f1_score(y_true, y_score)
 
@@ -48,7 +46,7 @@ def fit(model: MLP_Hidden2, x_train, y_train, hp):
 
         # Compute results
         print(f"\tEpoch {epoch + 1} - Loss {loss / hp['batch_size']} - F1-score (train) {f1_train}")
-    print("\n")
+    print("")
 
 
 def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict, n_split: int):
@@ -80,8 +78,9 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
         fit(model=model, x_train=inputs_train, y_train=labels_train, hp=hp)
 
         f1 = infer(model=model, x_inputs=inputs_val, y_labels=labels_val, hp=hp)
+        f1_scores.append(f1)
 
-        print(f"F1-score {f1}")
+        print(f"\tF1-score (val) {f1}\n")
 
         i += 1
-    return 0
+    return np.mean(f1_scores)
