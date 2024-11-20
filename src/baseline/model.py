@@ -2,7 +2,8 @@ import numpy as np
 
 
 class MLP_Hidden2:
-    def __init__(self, input_size, hidden_layer1, hidden_layer2, dropout_rate, batch_size, eta):
+    def __init__(self, input_size: int, hidden_layer1: int, hidden_layer2: int, dropout_rate: float, batch_size: int,
+                 eta):
         self.input_size = input_size
         self.is_train = True
 
@@ -39,13 +40,14 @@ class MLP_Hidden2:
     def train(self):
         self.is_train = True
 
-    def forward(self, x: np.ndarray):
+    def forward(self, x: np.ndarray) -> np.ndarray:
         """
         Forward pass
         :param x: numpy array (images)
         :return:
         """
         self.x = x
+        x = x.reshape(x.shape[0], -1) # Aplatir l'image
         # 1st layer
         self.hidden1_output = self.linear(x=x, weight=self.weight1, biais=self.biais1)
         self.hidden1_output = self.relu(self.hidden1_output)
@@ -58,12 +60,13 @@ class MLP_Hidden2:
 
         # Output layer
         x = self.linear(x=self.hidden2_output, weight=self.weight3, biais=self.biais3)
-        self.y_pred = self.softmax(x)
-        return self.y_pred
+        return self.softmax(x)
 
-    def loss(self, y_true) -> int:
+    def loss(self, y_true, y_pred) -> int:
         self.y_true = y_true
-        return - np.sum(y_true * np.log(self.y_pred)) / self.batch_size
+        self.y_pred = y_pred
+        epsilon = 1e-10  # Avoid log(0)
+        return - np.sum(y_true * np.log(self.y_pred + epsilon)) / self.batch_size
 
     def backward(self):
         # Output layer
@@ -94,6 +97,7 @@ class MLP_Hidden2:
         # Calculate gradient weight and biais
         d_weight1 = np.dot(self.x.T, d_hidden1) / self.batch_size
         d_biais1 = np.sum(d_hidden1, axis=0) / self.batch_size
+        d_weight1 = d_weight1.reshape(self.input_size, -1) # Aplatir l'image
 
         # Update all weight and biais
         self.weight1 -= self.eta * d_weight1
@@ -115,44 +119,5 @@ class MLP_Hidden2:
         return x * mask
 
     def softmax(self, x) -> np.ndarray:
-        exp_x = np.exp(x - np.max(x, axis=1, keepdims=True)) # Exp + prevent overflow
+        exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))  # Exp + prevent overflow
         return exp_x / np.sum(exp_x, axis=1, keepdims=True)
-
-
-def main():
-    np.random.seed(4)
-    input_tab = np.array([[1, 0, 1, 2], [1, 3, 0, 1]])
-    true_label = np.array([[0, 0, 1, 0], [1, 0, 0, 0]])
-    model = MLP_Hidden2(input_tab.shape[1], 4, 2, 0.5, 1, 0.01)
-
-    y_pred = model.forward(input_tab)
-
-    print("Forward: ", y_pred)
-
-    loss = model.loss(true_label)
-
-    print("Loss: ", loss)
-
-    model.backward()
-
-    y_pred = model.forward(input_tab)
-
-    print("Forward: ", y_pred)
-
-    loss = model.loss(true_label)
-
-    print("Loss: ", loss)
-
-    model.backward()
-
-    y_pred = model.forward(input_tab)
-
-    print("Forward: ", y_pred)
-
-    loss = model.loss(true_label)
-
-    print("Loss: ", loss)
-
-
-if __name__ == "__main__":
-    main()
