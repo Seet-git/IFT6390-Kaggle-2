@@ -1,6 +1,6 @@
 import numpy as np
 from model import MLP_Hidden2
-from utils import split_fold, split_batch, f1_score
+from utils import split_fold, split_batch, f1_score, create_one_hot
 
 
 def infer(model, x_inputs, y_labels, hp):
@@ -58,6 +58,7 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
     :return:
     """
     f1_scores = []
+    model = None
     kf_index = split_fold(inputs_images, n_split)
 
     i = 0
@@ -82,4 +83,20 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
         print(f"\tF1-score (val) {f1}\n")
 
         i += 1
-    return np.mean(f1_scores)
+    return np.mean(f1_scores), model
+
+
+def train(inputs_images: np.ndarray, labels_images: np.ndarray, hp: dict):
+    """
+
+    :param hp:
+    :param inputs_images:
+    :param labels_images:
+    :return:
+    """
+    np.random.seed(4)
+    one_hot = create_one_hot(labels_images)
+
+    _, model = k_cross_validation(inputs_images, one_hot, hp, 2)
+
+    return model

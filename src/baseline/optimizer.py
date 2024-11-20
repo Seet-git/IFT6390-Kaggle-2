@@ -40,7 +40,7 @@ def grid_search(inputs_images: np.ndarray, labels_images: np.ndarray):
             "epochs": int(i[5])
         }
 
-        f1 = k_cross_validation(inputs_images, one_hot, hp, 5)
+        f1, _ = k_cross_validation(inputs_images, one_hot, hp, 5)
 
         if f1 > best_score:
             best_score = f1

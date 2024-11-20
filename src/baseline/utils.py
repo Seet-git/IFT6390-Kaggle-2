@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def f1_score(y_true: list, y_pred: list):
     """
     Calculate macro F1 score
