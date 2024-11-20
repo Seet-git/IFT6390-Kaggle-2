@@ -2,6 +2,16 @@ from training import k_cross_validation
 from utils import create_one_hot
 import numpy as np
 
+def export_dict_as_python(best_hp):
+    hp_file = f"../../hyperparameters/baseline.py"
+    # Open/Create file
+    with open(hp_file, 'w') as file:
+        for key, value in best_hp.items():
+            if isinstance(value, str):
+                file.write(f"{key} = '{value}'\n")
+            else:
+                file.write(f"{key} = {value}\n")
+
 
 def grid_search(inputs_images: np.ndarray, labels_images: np.ndarray):
     np.random.seed(4)
@@ -35,8 +45,8 @@ def grid_search(inputs_images: np.ndarray, labels_images: np.ndarray):
         if f1 > best_score:
             best_score = f1
             best_hp = hp
+            export_dict_as_python(best_hp)
             print(f"New best F1-score {f1}")
-
 
         print(f"Best hyperparameters {best_hp}")
 

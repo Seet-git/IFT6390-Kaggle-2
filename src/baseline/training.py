@@ -74,7 +74,6 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
                             hidden_layer2=hp['hidden_size2'],
                             dropout_rate=hp['dropout_rate'], batch_size=hp['batch_size'], eta=hp['eta'])
 
-        # TODO: fit, infer
         fit(model=model, x_train=inputs_train, y_train=labels_train, hp=hp)
 
         f1 = infer(model=model, x_inputs=inputs_val, y_labels=labels_val, hp=hp)

@@ -1,5 +1,6 @@
 import numpy as np
 from optimizer import grid_search
+from evaluation import predict
 
 
 def main():
@@ -12,7 +13,11 @@ def main():
     labels_train = np.array(data_train['labels'])
     images_test = np.array(data_train['images'])
 
+    # Grid search and return best hyperparameters in a python file
     grid_search(inputs_images=images_train, labels_images=labels_train)
+
+    # TODO : Get best hyperparameters from ./hyperparameters/baseline.py -> Predict on data_test
+    # predict()
 
 
 if __name__ == "__main__":
