@@ -2,6 +2,7 @@ from training import k_cross_validation
 from utils import create_one_hot
 import numpy as np
 
+
 def export_dict_as_python(best_hp):
     hp_file = f"../../hyperparameters/baseline.py"
     # Open/Create file
@@ -23,7 +24,6 @@ def grid_search(inputs_images: np.ndarray, labels_images: np.ndarray):
     batch_size = [16, 32, 64]
     eta = [0.001, 0.0001, 0.01]
     epochs = [5, 10, 20]
-
 
     grid = np.array(np.meshgrid(hidden_size1, hidden_size2, dropout_rate, batch_size, eta, epochs)).T.reshape(-1, 6)
 

@@ -20,12 +20,12 @@ def main():
     # Load best hyper-parameters
     hp = {
         "input_size": 784,
-        "hidden_size1": 512,
+        "hidden_size1": 64,
         "hidden_size2": 264,
         "dropout_rate": 0.2,
-        "batch_size": 16,
-        "eta": 0.001,
-        "epochs": 5
+        "batch_size": 32,
+        "eta": 0.01,
+        "epochs": 100
     }
 
     # Train model

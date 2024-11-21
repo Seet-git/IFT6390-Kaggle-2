@@ -1,5 +1,5 @@
 import numpy as np
-from model import MLP_Hidden2
+from model import MLP_Hidden1
 from utils import split_batch
 
 
@@ -17,7 +17,7 @@ def export_output(output_pred: list):
     print("Prediction saved !")
 
 
-def predict(predict_images: np.ndarray, model: MLP_Hidden2, hp: dict):
+def predict(predict_images: np.ndarray, model: MLP_Hidden1, hp: dict):
     """
     :param hp
     :param model: 

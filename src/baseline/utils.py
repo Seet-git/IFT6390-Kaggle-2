@@ -1,10 +1,6 @@
 import numpy as np
 
 
-def accuracy(y_pred, y_true):
-    return np.mean(y_true == y_pred)
-
-
 def split_fold(inputs_images: np.ndarray, n_split: int) -> list:
     """
     :param inputs_images:

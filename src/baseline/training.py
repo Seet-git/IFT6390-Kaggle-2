@@ -1,40 +1,29 @@
 import numpy as np
 
-from model import MLP_Hidden2, MLP_Hidden1
-from utils import split_fold, split_batch, create_one_hot, accuracy
+from model import MLP_Hidden1
+from utils import split_fold, split_batch, create_one_hot
 
 
-def infer(model, x_inputs, y_labels, hp):
-    # Initialisation
-    y_score = []
-    y_true = []
-
-    model.eval()
-    batches = split_batch(x_inputs, hp["batch_size"])
-
-    for batch in batches:
-        x_batch, y_batch = x_inputs[batch], y_labels[batch]
-        y_pred = model.forward(x_batch)
-        y_score.extend(np.argmax(y_pred, axis=1))
-        y_true.extend(np.argmax(y_batch, axis=1))
-
-    y_score = np.array(y_score)
-    y_true = np.array(y_true)
-    return accuracy(y_score, y_true)
+def infer(model, x_inputs, y_labels):
+    y_pred = model.forward(x_inputs)
+    y_pred_classes = np.argmax(y_pred, axis=1)
+    y_true_classes = np.argmax(y_labels, axis=1)
+    return np.mean(y_pred_classes == y_true_classes)
 
 
-def fit(model: MLP_Hidden1, x_train, y_train, hp):
+def fit(model: MLP_Hidden1, x_train, y_train, x_val, y_val, hp):
     """
     Fit model
     :param model:
     :param x_train:
     :param y_train:
+    :param x_val:
+    :param y_val:
     :param hp:
     :return:
     """
     # Loop on all epochs
     for epoch in range(hp["epochs"]):
-        model.train()
         loss = 0
         batches = split_batch(x_train, hp["batch_size"])
 
@@ -45,10 +34,12 @@ def fit(model: MLP_Hidden1, x_train, y_train, hp):
             loss += model.loss(y_batch, y_pred)
             model.backward()
 
-        acc_train = infer(model, x_train, y_train, hp)
+        acc_train = infer(model, x_train, y_train)
+        acc_val = infer(model, x_val, y_val)
 
         # Compute results
-        print(f"\tEpoch {epoch + 1} - Loss {loss / hp['batch_size']} - Accuracy (train) {acc_train}")
+        print(
+            f"\tEpoch {epoch + 1} - Loss {loss / hp['batch_size']} - Accuracy (train) {acc_train} - Accuracy (val) {acc_val}")
     print("")
 
 
@@ -60,6 +51,7 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
     :param n_split:
     :return:
     """
+    inputs_images = inputs_images.reshape(inputs_images.shape[0], -1)
     acc_scores = []
     model = None
     kf_index = split_fold(inputs_images, n_split)
@@ -74,16 +66,11 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
         labels_train, labels_val = np.delete(one_hot, fold, axis=0), one_hot[fold]
 
         # Set model
-        # model = MLP_Hidden2(input_size=hp['input_size'], hidden_layer1=hp['hidden_size1'],
-        #                     hidden_layer2=hp['hidden_size2'],
-        #                     dropout_rate=hp['dropout_rate'], batch_size=hp['batch_size'], eta=hp['eta'])
+        model = MLP_Hidden1(input_size=hp['input_size'], hidden_layer=hp['hidden_size1'], eta=hp['eta'])
 
-        model = MLP_Hidden1(input_size=hp['input_size'], hidden_layer=hp['hidden_size1'],
-                            dropout_rate=hp['dropout_rate'], batch_size=hp['batch_size'], eta=hp['eta'])
+        fit(model=model, x_train=inputs_train, y_train=labels_train, x_val=inputs_val, y_val=labels_val, hp=hp)
 
-        fit(model=model, x_train=inputs_train, y_train=labels_train, hp=hp)
-
-        acc = infer(model=model, x_inputs=inputs_val, y_labels=labels_val, hp=hp)
+        acc = infer(model=model, x_inputs=inputs_val, y_labels=labels_val)
         acc_scores.append(acc)
 
         print(f"\tAccuracy (val) {acc}\n")
@@ -103,6 +90,6 @@ def train(inputs_images: np.ndarray, labels_images: np.ndarray, hp: dict):
     np.random.seed(4)
     one_hot = create_one_hot(labels_images)
 
-    _, model = k_cross_validation(inputs_images, one_hot, hp, 2)
+    _, model = k_cross_validation(inputs_images, one_hot, hp, 5)
 
     return model
