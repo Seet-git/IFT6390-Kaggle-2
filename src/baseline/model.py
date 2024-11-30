@@ -19,7 +19,6 @@ class MLP_Hidden1:
         self.biais1 = np.zeros((1, hidden_layer))
         self.biais2 = np.zeros((1, 4))
 
-
         # Sorties intermédiaires
         self.x = None
         self.hidden_output = None

@@ -1,2 +1,9 @@
 numpy==2.0.2
 pillow~=11.0.0
+torch
+torchvision
+efficientnet-pytorch
+transformers
+scikit-learn
+tqdm
+urllib3

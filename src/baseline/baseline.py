@@ -2,12 +2,9 @@ import numpy as np
 from optimizer import grid_search
 from evaluation import predict
 from training import train
-from src.extract_data import extract_data_zip
 
 
 def main():
-    extract_data_zip("../../data/data.zip", "../../data")
-
     # Data loading
     data_train = np.load('../../data/train_data.pkl', allow_pickle=True)
     data_test = np.load('../../data/test_data.pkl', allow_pickle=True)

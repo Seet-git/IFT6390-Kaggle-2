@@ -1,4 +1,5 @@
 import zipfile
+import numpy as np
 
 
 def extract_data_zip(zip_path, extract_to):
@@ -13,3 +14,26 @@ def extract_data_zip(zip_path, extract_to):
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
     print(f"Extraction completed. Files are available in {extract_to}.")
+
+
+def load_data(percent:int = 100):
+    # Unzip
+    extract_data_zip("../../data/data.zip", "../../data")
+
+    # Data loading
+    data_train = np.load('../../data/train_data.pkl', allow_pickle=True)
+    data_test = np.load('../../data/test_data.pkl', allow_pickle=True)
+
+    # Extract data
+    images_train = np.array(data_train['images'])
+    labels_train = np.array(data_train['labels'])
+    images_test = np.array(data_test['images'])
+
+    total_samples = len(images_train)
+    num_samples = int(total_samples * (percent / 100))
+    indices = np.random.choice(total_samples, num_samples, replace=False)
+
+    images_train_subset = images_train[indices]
+    labels_train_subset = labels_train[indices]
+
+    return images_train_subset, labels_train_subset, images_test
