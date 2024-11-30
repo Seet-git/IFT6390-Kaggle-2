@@ -1,0 +1,7 @@
+# Exclure les fichiers générés
+*.pyc
+__pycache__/
+
+
+data/*
+!data/data.zip

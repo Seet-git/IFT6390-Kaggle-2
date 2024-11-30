@@ -164,4 +164,7 @@ cython_debug/
 data/*
 !data/.gitkeep
 
+images_test/*
+!images_test/.gitkeep
+
 workspace.xml
