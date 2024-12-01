@@ -4,7 +4,6 @@ from utils import split_batch
 
 
 def export_output(output_pred: list):
-    print(output_pred)
     np.savetxt(
         '../../output/baseline.csv',
         np.column_stack((np.arange(1, len(output_pred) + 1), output_pred)),
