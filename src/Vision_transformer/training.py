@@ -1,11 +1,13 @@
 from torch.utils.data import DataLoader
 from transformers import ViTForImageClassification, ViTImageProcessor
+from transformers.optimization import get_cosine_schedule_with_warmup
 from transformers import logging
 from sklearn.model_selection import StratifiedKFold
 import torch
 import torch.nn as nn
 from sklearn.utils import compute_class_weight
 from torch.amp import GradScaler, autocast
+
 import config
 
 import numpy as np
@@ -16,6 +18,7 @@ from src.Vision_transformer.utils import convert_to_rgb, OCTDataset, balance_val
 
 logging.set_verbosity_error()
 best_acc = -np.inf
+patience = 3
 
 
 def preprocessing():
@@ -49,8 +52,9 @@ def infer(model, infer_loader):
     return accuracy
 
 
-def fit(model, processor, train_loader, val_loader, criterion, optimizer, fold, epochs=5):
+def fit(model, processor, train_loader, val_loader, criterion, optimizer, fold, scheduler, epochs=10):
     global best_acc
+    no_improvement = 0
     scaler = GradScaler(device="cuda" if torch.cuda.is_available() else "cpu")
     for epoch in range(epochs):
         model.train()
@@ -75,6 +79,7 @@ def fit(model, processor, train_loader, val_loader, criterion, optimizer, fold, 
             scaler.step(optimizer)
             scaler.update()
             train_loss += loss.item()
+            scheduler.step()
 
         train_loss /= len(train_loader)
         acc_train = infer(model, train_loader)
@@ -87,6 +92,13 @@ def fit(model, processor, train_loader, val_loader, criterion, optimizer, fold, 
             print("New best model !")
             best_acc = acc_val
             save_model(model, processor, fold, epoch)
+            no_improvement = 0
+        else:
+            no_improvement += 1
+
+        if no_improvement >= patience:
+            print(f"Early stopping at epoch {epoch + 1}")
+            break
 
     print("")
     return model
@@ -123,8 +135,8 @@ def k_cross_validation(inputs_images: np.ndarray, labels_images: np.ndarray, hp:
         val_dataset = OCTDataset(inputs_val, labels_val, processor)
 
         # Create dataloaders
-        train_loader = DataLoader(train_dataset, batch_size=hp['batch_size'], shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=hp['batch_size'], shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=hp['batch_size'], shuffle=True, num_workers=16, pin_memory=True)
+        val_loader = DataLoader(val_dataset, batch_size=hp['batch_size'], shuffle=False, num_workers=16, pin_memory=True)
 
         # Compute weights
         class_weights = compute_class_weight(
@@ -136,13 +148,22 @@ def k_cross_validation(inputs_images: np.ndarray, labels_images: np.ndarray, hp:
         print(f"Class weights: {class_weights}")
 
         # Set model
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=hp["lr"])
+        criterion = nn.CrossEntropyLoss(label_smoothing=0.1, weight=class_weights)
+        if hp["optimizer"] == "adamW":
+            optimizer = torch.optim.AdamW(model.parameters(), lr=hp["lr"])
+        elif hp["optimizer"] == "sgd":
+            optimizer = torch.optim.SGD(model.parameters(), momentum=hp['momentum'], lr=hp["lr"])
+        else:
+            raise ValueError("Bad OPTIMIZER value")
 
-        #
+        num_training_steps = len(train_loader) * 10
+        scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=int(0.1 * num_training_steps),
+                                                    num_training_steps=num_training_steps)
+
+        # Set model
         model = fit(model=model, processor=processor, train_loader=train_loader, val_loader=val_loader,
                     criterion=criterion,
-                    optimizer=optimizer, fold=fold)
+                    optimizer=optimizer, scheduler=scheduler, fold=fold)
 
         acc = infer(model=model, infer_loader=val_loader)
         all_scores.append(acc)
