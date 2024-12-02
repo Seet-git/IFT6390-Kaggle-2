@@ -33,7 +33,7 @@ def extract_data_zip(zip_path, extract_to):
 
 def load_data(percent: int = 100):
     # Unzip
-    extract_data_zip("./data/data.zip", "./data")
+    extract_data_zip("../data/data.zip", "./data")
 
     # Data loading
     data_train = np.load('./data/train_data.pkl', allow_pickle=True)

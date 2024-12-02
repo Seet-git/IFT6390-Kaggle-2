@@ -7,3 +7,7 @@ transformers
 scikit-learn
 tqdm
 urllib3
+accelerate
+tensorboard
+wandb
+pytz
