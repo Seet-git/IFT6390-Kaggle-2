@@ -1,4 +1,4 @@
-from src.Vision_transformer.training import train
+from src.Vision_transformer.training_ import train
 from src.extract_data import load_data
 
 

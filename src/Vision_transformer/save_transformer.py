@@ -1,5 +1,7 @@
 import os
 
+import torch
+
 import config
 
 
@@ -8,7 +10,14 @@ def save_model_hf(trainer, fold):
     trainer.save_model_base(f"./hyperparameters/{config.ALGORITHM}/model_{config.ALGORITHM}_{fold}_hf")
 
 
-def save_model_base(model, processor, fold, epoch):
+def save_models_base(model, processor):
+    torch.save({
+        'model_state_dict': model.state_dict(),
+        'processor': processor
+    }, "mobilenet_v3_large_with_processor.pth")
+
+
+def save_transformer(model, processor, fold, epoch):
     # Sauvegarder le modèle
     os.makedirs(f"./hyperparameters/{config.ALGORITHM}/{config.OUTPUT_HP_PATH}", exist_ok=True)
     model.save_pretrained(

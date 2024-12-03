@@ -4,8 +4,5 @@ __pycache__/
 
 .git/*
 
-data/*
-!data/data.zip
-
 output/*
 !output/.gitkeep
