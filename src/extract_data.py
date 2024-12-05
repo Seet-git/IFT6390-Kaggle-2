@@ -1,6 +1,8 @@
 import os
 import zipfile
 import numpy as np
+from sklearn.model_selection import train_test_split
+
 import config
 
 
@@ -46,10 +48,18 @@ def load_data(percent: int = 100):
 
     total_samples = len(images_train)
     num_samples = int(total_samples * (percent / 100))
-    indices = np.random.choice(total_samples, num_samples, replace=False)
 
-    images_train_subset = images_train[indices]
-    labels_train_subset = labels_train[indices]
+    # Stratified sampling
+    if percent < 100:
+        images_train_subset, _, labels_train_subset, _ = train_test_split(
+            images_train, labels_train,
+            train_size=num_samples,
+            stratify=labels_train,  # Same class distribution
+            random_state=1
+        )
+    else:
+        images_train_subset = images_train
+        labels_train_subset = labels_train
 
     print(
         f"Loaded {len(images_train_subset)} train images - Shape {images_train_subset.shape[1]} x {images_train_subset.shape[2]}")

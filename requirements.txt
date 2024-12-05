@@ -12,3 +12,5 @@ tensorboard
 wandb
 pytz
 timm
+optuna
+pymysql
