@@ -1,3 +1,5 @@
+import torch
+
 import config
 from src.pretrained_models.bayesian_opti import bayesian_optimization
 from src.pretrained_models.evaluation import predict
@@ -8,6 +10,8 @@ from src.extract_data import load_data
 
 def main():
     images_train, labels_train, images_test = load_data()
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cuda.matmul.allow_tf32 = True
 
     hp_base_vit = {
         "algo": "ViT",
@@ -16,7 +20,7 @@ def main():
         "batch_size": 64,
         "lr": 1e-4,
         "weight_decay": 0.01,
-        "scheduler" : "cosine"
+        "scheduler": "cosine"
     }
 
     hp_base_mobile_net_v3 = {
@@ -31,7 +35,7 @@ def main():
 
     hp_base_efficient_net_b0 = {
         "algo": "EfficientNet-B0",
-        "epochs": 20,
+        "epochs": 100,
         "optimizer": "adam",
         "batch_size": 64,
         "lr": 1e-4,
@@ -70,12 +74,36 @@ def main():
         "scheduler": "lr"
     }
 
-    #bayesian_optimization()
+    hp_base_hybrid = {
+        "algo": "HybridResNetEfficientNet",
+        "epochs": 20,
+        "optimizer": "adam",
+        "batch_size": 64,
+        "lr": 1e-4,
+        "weight_decay": 0.00,
+        "scheduler": "cosine"
+    }
 
-    #train_base(images_train, labels_train, hp_base_efficient_net_b0)
-    predict(images_test, hp_base_efficient_net_b0)
+    # Bayesian optimization
+    bayesian_optimization("EfficientNet-B0")
+
+    # Train model
+    train_base(images_train, labels_train, hp_base_hybrid)
+
+    # Predict
+    predict(images_test, hp_base_hybrid)
 
     # Hugging face
+    hp_hf = {
+        "algo": "ViT",
+        "epochs": 20,
+        "optimizer": "adamW",
+        "batch_size": 64,
+        "lr": 1e-4,
+        "weight_decay": 0.01,
+        "scheduler": "cosine"
+    }
+
     # train_hf(images_train, labels_train, hp_hf)
 
 

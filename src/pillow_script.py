@@ -4,10 +4,10 @@ import os
 import numpy as np
 from PIL import Image
 
-data_test = np.load('../data/test_data.pkl', allow_pickle=True)
+from src.extract_data import load_data
 
 # Extract data
-images = np.array(data_test['images'])
+images, labels, _ = load_data(10)
 
 # Normaliser entre 0 et 255 si nécessaire
 if images.max() <= 1.0:  # Si les valeurs sont entre 0 et 1
@@ -22,6 +22,6 @@ os.makedirs(output_folder, exist_ok=True)
 for i in range(1000):
     image_array = images[i]  # Extraire l'image du tableau Numpy
     image = Image.fromarray(image_array, mode="L")  # Assurer que c'est en niveaux de gris
-    image_path = os.path.join(output_folder, f"image_{i+1}.png")
+    image_path = os.path.join(output_folder, f"image_{i + 1}.png")
     image.save(image_path)
-    print(f"Image {i+1} sauvegardée : {image_path}")
+    print(f"Image {i + 1} sauvegardée : {image_path}")

@@ -14,3 +14,6 @@ pytz
 timm
 optuna
 pymysql
+grad-cam
+opencv-python-headless # You may need to run apt-get install -y libgl1-mesa-glx
+imbalanced-learn

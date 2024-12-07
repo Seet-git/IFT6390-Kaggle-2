@@ -37,9 +37,6 @@ class OCTDataset(Dataset):
 
 
 def preprocessing():
-    """
-    Préparer le modèle et le processeur pour le fine-tuning.
-    """
     processor = ViTImageProcessor.from_pretrained("google/vit-base-patch16-224-in21k")
     model = ViTForImageClassification.from_pretrained(
         "google/vit-base-patch16-224-in21k",
@@ -50,7 +47,7 @@ def preprocessing():
 
 def train_with_trainer(model, processor, train_dataset, val_dataset, hp, fold):
     """
-    Fine-tuning avec Hugging Face Trainer.
+    Fine-tuning Hugging Face Trainer.
     """
     os.makedirs(f"./temp/{config.ALGORITHM}/{fold}", exist_ok=True)
     training_args = TrainingArguments(
@@ -87,9 +84,6 @@ def train_with_trainer(model, processor, train_dataset, val_dataset, hp, fold):
 
 
 def infer(model, infer_loader):
-    """
-    Effectuer une évaluation sur le jeu de test.
-    """
     model.eval()
     correct = 0
     total = 0
@@ -107,9 +101,6 @@ def infer(model, infer_loader):
 
 
 def k_cross_validation(inputs_images: np.ndarray, labels_images: np.ndarray, hp: dict, n_split: int = 5):
-    """
-    Validation croisée avec Hugging Face Trainer.
-    """
     inputs_images = [convert_to_rgb(img) for img in inputs_images]
     all_scores = []
     processor = None
@@ -151,9 +142,6 @@ def k_cross_validation(inputs_images: np.ndarray, labels_images: np.ndarray, hp:
 
 
 def train(inputs_images: np.ndarray, labels_images: np.ndarray, hp: dict):
-    """
-    Lancer l'entraînement principal avec validation croisée.
-    """
     if config.ALGORITHM != "model_ViT":
         raise ValueError("Bad ALGORITHM value")
 
