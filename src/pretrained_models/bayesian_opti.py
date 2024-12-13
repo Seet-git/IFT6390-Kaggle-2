@@ -23,7 +23,8 @@ def objective(trial):
     images_train, labels_train, _ = load_data(10)
 
     # hyperparameters (can change)
-    lr = trial.suggest_float("lr", 1e-4, 1e-2, log=True)
+    lr = trial.suggest_float("learning rate", 1e-4, 1e-2, log=True)
+    weight_decay = trial.suggest_float("weight decay", 1e-5, 1e-2, log=True)
 
     # Set hyperparameters
     hp = {
@@ -32,7 +33,7 @@ def objective(trial):
         "optimizer": "adam",
         "batch_size": 64,
         "lr": lr,
-        "weight_decay": 0,
+        "weight_decay": weight_decay,
         "scheduler": "cosine"
     }
 

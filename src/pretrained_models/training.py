@@ -1,10 +1,7 @@
 import wandb
 from datetime import datetime
 import pytz
-from matplotlib import pyplot as plt
 from pytorch_grad_cam import GradCAM
-from pytorch_grad_cam.utils.image import show_cam_on_image
-from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from transformers import ViTForImageClassification, ViTImageProcessor
@@ -19,10 +16,13 @@ from sklearn.utils import compute_class_weight
 from torch.amp import GradScaler, autocast
 import numpy as np
 from tqdm import tqdm
+from torchsummary import summary
 
 import config
-from src.pretrained_models.utils import convert_to_rgb, OCTDataset, plot_confusion_matrix, apply_smote_to_images, \
+from src.pretrained_models.utils import convert_to_rgb, OCTDataset, apply_smote_to_images, \
     balance_validation_set, generate_bottom_mask
+from src.pretrained_models.visualisation import plot_visualisations, plot_grad_cam
+
 from src.pretrained_models.save_models import save_models_base
 
 logging.set_verbosity_error()
@@ -42,8 +42,13 @@ class HybridResNetEfficientNet(nn.Module):
             eff_weight = models.EfficientNet_B0_Weights.IMAGENET1K_V1
         self.resnet50 = models.resnet50(weights=res_weight)
         self.resnet50 = nn.Sequential(*list(self.resnet50.children())[:-1])
+        self.to(device=config.DEVICE)
+        # summary(self.resnet50, input_size=(3, 224, 224))
+
         self.efficientnet_b0 = models.efficientnet_b0(weights=eff_weight)
         self.efficientnet_b0 = nn.Sequential(*list(self.efficientnet_b0.children())[:-1])
+        self.to(device=config.DEVICE)
+        # summary(self.efficientnet_b0, input_size=(3, 224, 224))
         self.fc = nn.Sequential(
             nn.Linear(2048 + 1280, 512),
             nn.ReLU(),
@@ -115,14 +120,16 @@ def preprocessing():
 
         elif config.ALGORITHM == "HybridResNetEfficientNet":
             model = HybridResNetEfficientNet(num_classes=4)
+
         else:
             raise ValueError(f"Unsupported model name: {config.ALGORITHM}")
 
-        processor = None
-
         # Freeze layers
-        # for param in model.features.parameters():
-        #     param.requires_grad = True
+        if config.ALGORITHM != "HybridResNetEfficientNet":
+            for param in model.features.parameters():
+                param.requires_grad = True
+
+        processor = None
 
     return model, processor
 
@@ -131,19 +138,15 @@ def infer(model, infer_loader, is_cam_grad=False):
     model.eval()
     labels_tab = []
     pred_tab = []
+    efficientnet_cam = None
+    resnet_cam = None
 
     # Target layer for Grad-CAM
-    target_layer = model.features[-1]
     if config.ALGORITHM == "HybridResNetEfficientNet":
-        target_layer = model.resnet50[6][-1].conv3
-
-    cam = GradCAM(model=model, target_layers=[target_layer])
-
-    def denormalize(image):
-        image = image.clone().cpu()
-        for t, m, s in zip(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]):
-            t.mul_(s).add_(m)
-        return image.permute(1, 2, 0).numpy()
+        efficientnet_target_layer = model.efficientnet_b0[-2]
+        resnet_target_layer = model.resnet50[6][-1].conv3
+        efficientnet_cam = GradCAM(model=model, target_layers=[efficientnet_target_layer])
+        resnet_cam = GradCAM(model=model, target_layers=[resnet_target_layer])
 
     with torch.set_grad_enabled(True):
         for idx, (images, labels) in enumerate(infer_loader):
@@ -162,36 +165,12 @@ def infer(model, infer_loader, is_cam_grad=False):
             pred_tab.extend(y_pred.cpu().numpy())
 
             # Plot grad cam for misclassified predictions
-            if is_cam_grad:
+            if is_cam_grad and config.ALGORITHM == "HybridResNetEfficientNet":
                 counter = 0
                 for i in range(len(images)):
                     if y_pred[i] != labels[i] and labels[i] == 2 and y_pred[i] == 3:  # Misclassified
                         counter += 1
-                        targets = [ClassifierOutputTarget(y_pred[i].item())]
-                        grayscale_cam = cam(input_tensor=images[i].unsqueeze(0), targets=targets)
-                        grayscale_cam = grayscale_cam[0, :]
-
-                        # Dénormalize
-                        original_image = denormalize(images[i])
-                        original_image = (original_image - original_image.min()) / (
-                                original_image.max() - original_image.min())
-                        visualization = show_cam_on_image(original_image, grayscale_cam, use_rgb=True)
-
-                        # Plot original image
-                        plt.figure(figsize=(10, 5))
-                        plt.subplot(1, 2, 1)
-                        plt.imshow(original_image)
-                        plt.title(f"Image Originale (Classe {labels[i].item()}")
-                        plt.axis("off")
-
-                        # Plot prediction
-                        plt.subplot(1, 2, 2)
-                        plt.imshow(visualization)
-                        plt.title(f"Grad-CAM (Prediction {y_pred[i].item()})")
-                        plt.axis("off")
-
-                        plt.tight_layout()
-                        plt.show()
+                        plot_grad_cam(images, i, labels, y_pred, efficientnet_cam, resnet_cam)
 
                 print(f"Cam grad batch {idx} - Misclassified {counter}")
 
@@ -200,8 +179,10 @@ def infer(model, infer_loader, is_cam_grad=False):
     f1_macro = f1_score(labels_tab, pred_tab, average='macro')
     f1_weighted = f1_score(labels_tab, pred_tab, average='weighted')
     print(classification_report(labels_tab, pred_tab, zero_division=0))
+
+    # Plot visualisations
     if is_cam_grad:
-        plot_confusion_matrix(labels_tab, pred_tab)
+        plot_visualisations(labels_tab, pred_tab)
 
     return accuracy, f1_macro, f1_weighted
 
@@ -220,10 +201,10 @@ def fit(model, processor, train_loader, val_loader, criterion, optimizer, fold, 
     for epoch in range(hp["epochs"]):
 
         # Unfreeze
-        # if epoch + 1 == (0.1 * hp['epochs']) and config.ALGORITHM != "ViT":
-        #     print("Unfreeze")
-        #     for param in model.features.parameters():
-        #         param.requires_grad = True
+        if epoch + 1 == (0.1 * hp['epochs']) and config.ALGORITHM != "ViT" and config.ALGORITHM != "HybridResNetEfficientNet":
+            print("Unfreeze")
+            for param in model.features.parameters():
+                param.requires_grad = True
 
         # Train mode
         model.train()
@@ -256,7 +237,7 @@ def fit(model, processor, train_loader, val_loader, criterion, optimizer, fold, 
         train_loss /= len(train_loader)
         acc_train, macro_train, weighted_train = infer(model, train_loader)
 
-        if epoch + 1 == hp['epochs'] // 2:
+        if (epoch + 1) % 10 == 0:
             acc_val, macro_val, weighted_val = infer(model, val_loader, is_cam_grad=True)
         else:
             acc_val, macro_val, weighted_val = infer(model, val_loader)
@@ -269,6 +250,7 @@ def fit(model, processor, train_loader, val_loader, criterion, optimizer, fold, 
                 "train_accuracy": acc_train,
                 "val_accuracy": acc_val,
                 "epoch": epoch + 1,
+                "train_f1_macro": macro_train,
                 "val_f1_macro": macro_val,
                 "fold": fold,
             })
@@ -308,8 +290,6 @@ def k_cross_validation(inputs_images: np.ndarray, labels_images: np.ndarray, hp:
     global best_macro
     best_macro = -np.inf
     all_scores = []
-    model = None
-    processor = None
 
     # Convert PIL gray to PIL RGB
     inputs_images = [convert_to_rgb(img) for img in inputs_images]
@@ -431,7 +411,7 @@ def train(inputs_images: np.ndarray, labels_images: np.ndarray, hp: dict, trial=
             trial = f" - Trial {trial}"
 
         wandb.init(
-            project=f"{config.ALGORITHM}-Training",
+            project=f"Kaggle-2",
             config=hp,
             name=f"{config.ALGORITHM}-{hp['optimizer']} - {current_time}{trial}",
         )

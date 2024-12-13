@@ -35,7 +35,7 @@ def main():
 
     hp_base_efficient_net_b0 = {
         "algo": "EfficientNet-B0",
-        "epochs": 100,
+        "epochs": 20,
         "optimizer": "adam",
         "batch_size": 64,
         "lr": 1e-4,
@@ -85,13 +85,13 @@ def main():
     }
 
     # Bayesian optimization
-    bayesian_optimization("EfficientNet-B0")
+    # bayesian_optimization("EfficientNet-B0")
 
     # Train model
     train_base(images_train, labels_train, hp_base_hybrid)
 
     # Predict
-    predict(images_test, hp_base_hybrid)
+    # predict(images_test, hp_base_hybrid)
 
     # Hugging face
     hp_hf = {

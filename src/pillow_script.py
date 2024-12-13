@@ -7,7 +7,7 @@ from PIL import Image
 from src.extract_data import load_data
 
 # Extract data
-images, labels, _ = load_data(10)
+images, labels, _ = load_data(10, path="../")
 
 # Normaliser entre 0 et 255 si nécessaire
 if images.max() <= 1.0:  # Si les valeurs sont entre 0 et 1

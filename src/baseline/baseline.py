@@ -20,8 +20,7 @@ def main():
     # Load best hyper-parameters
     hp = {
         "input_size": 784,
-        "hidden_size1": 64,
-        "hidden_size2": 264,
+        "hidden_size": 64,
         "dropout_rate": 0.2,
         "batch_size": 32,
         "eta": 0.01,

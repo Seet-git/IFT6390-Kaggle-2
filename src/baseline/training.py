@@ -66,7 +66,7 @@ def k_cross_validation(inputs_images: np.ndarray, one_hot: np.ndarray, hp: dict,
         labels_train, labels_val = np.delete(one_hot, fold, axis=0), one_hot[fold]
 
         # Set model
-        model = MLP_Hidden1(input_size=hp['input_size'], hidden_layer=hp['hidden_size1'], eta=hp['eta'])
+        model = MLP_Hidden1(input_size=hp['input_size'], hidden_layer=hp['hidden_size'], eta=hp['eta'])
 
         fit(model=model, x_train=inputs_train, y_train=labels_train, x_val=inputs_val, y_val=labels_val, hp=hp)
 

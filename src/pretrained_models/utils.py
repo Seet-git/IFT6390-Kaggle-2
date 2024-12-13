@@ -1,8 +1,6 @@
 from PIL import Image
 import numpy as np
 import torch
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
 from imblearn.over_sampling import SMOTE
 
 
@@ -29,6 +27,7 @@ class OCTDataset(torch.utils.data.Dataset):
         if self.labels is not None:
             label = torch.tensor(self.labels[idx], dtype=torch.long)
             return image, label
+
         return image
 
 
@@ -64,16 +63,6 @@ def balance_validation_set(inputs_val, labels_val):
     return balanced_inputs, balanced_labels
 
 
-def plot_confusion_matrix(y_true, y_pred):
-    class_names = ["CN", "DME", "Drusen", "Healthy"]
-    cm = confusion_matrix(y_true, y_pred)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
-
-    disp.plot(cmap='Blues', values_format='d')
-    plt.title("Confusion Matrix")
-    plt.show()
-
-
 def apply_smote_to_images(inputs, labels):
     smote = SMOTE(random_state=1, k_neighbors=2)
     # PIL to numpy
@@ -96,3 +85,10 @@ def generate_bottom_mask(image_size=(224, 224), crop_ratio=0.3):
     top = int(image_size[0] * (1 - crop_ratio))
     mask[top:, :] = 1  # 1 sur la région inférieure
     return mask
+
+
+def denormalize(image):
+    image = image.clone().cpu()
+    for t, m, s in zip(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]):
+        t.mul_(s).add_(m)
+    return image.permute(1, 2, 0).numpy()

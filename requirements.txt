@@ -15,5 +15,7 @@ timm
 optuna
 pymysql
 grad-cam
-opencv-python-headless # You may need to run apt-get install -y libgl1-mesa-glx
+opencv-python-headless # You may need to execute `apt-get install -y libgl1-mesa-glx`
 imbalanced-learn
+seaborn
+torchsummary

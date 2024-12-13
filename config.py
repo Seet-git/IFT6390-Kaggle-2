@@ -18,8 +18,8 @@ DATABASE_NAME = "optuna_db"
 # ENDPOINT CONFIGURATION
 # Define the endpoint for Optuna (Local or Ngrok)
 # --------------------------------------------------------------
-# ENDPOINT = "localhost"  # Local usage
-ENDPOINT = "2.tcp.ngrok.io:15371"  # Example usage with Ngrok (LOTR)
+ENDPOINT = "localhost"  # Local usage
+#ENDPOINT = "2.tcp.ngrok.io:11379"  # Example usage with Ngrok (LOTR)
 
 # --------------------------------------------------------------
 # DATA PATH CONFIGURATION

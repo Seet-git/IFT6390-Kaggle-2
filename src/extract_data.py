@@ -26,13 +26,13 @@ def extract_data_zip(zip_path, extract_to):
     print(f"Extraction completed --> {os.path.abspath(extract_to)}")
 
 
-def load_data(percent: int = 100):
+def load_data(percent: int = 100, path = "./"):
     # Unzip
-    extract_data_zip("./data/data.zip", "./data")
+    extract_data_zip(f"{path}data/data.zip", f"{path}data")
 
     # Data loading
-    data_train = np.load('./data/train_data.pkl', allow_pickle=True)
-    data_test = np.load('./data/test_data.pkl', allow_pickle=True)
+    data_train = np.load(f'{path}data/train_data.pkl', allow_pickle=True)
+    data_test = np.load(f'{path}data/test_data.pkl', allow_pickle=True)
 
     # Extract data
     images_train = np.array(data_train['images'])
